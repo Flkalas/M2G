@@ -1,0 +1,22 @@
+{
+	"manifest_version": 2,
+	"name": "MP4 to GIF",
+	"description": "This extension convert and save MP4 video to GIF animate picture format.",	
+	"version": "1.0",
+	
+	"permissions": [
+		"contextMenus",
+		"activeTab",
+		"http://*/",
+		"https://*/",
+		"downloads"
+	],
+	"icons": {
+		"16": "icon-bitty.png",
+		"48": "icon-small.png",
+		"128": "icon-large.png"
+	},
+	"background": {
+		"scripts": ["sample.js"]
+	}
+}
