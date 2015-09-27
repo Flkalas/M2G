@@ -7,6 +7,7 @@ var flag = false;
 var delay = 100;
 var widthVideo;
 var heightVideo;
+var eleVideo = document.createElement('video');
 var canvas = document.createElement('canvas');
 var context = canvas.getContext('2d');
 
@@ -28,7 +29,7 @@ function draw(v,c,w,h) {
 	if(v.paused || v.ended)	return false;
 	c.drawImage(v,0,0,w,h);
 	if(flag == true){	
-		var imdata = c.getImageData(0,0,w,h);
+		var imdata = c.getImageData(0,0,w,h);		
 		worker.postMessage({frame: imdata});
 	}
 	setTimeout(draw,delay,v,c,w,h);
@@ -38,31 +39,34 @@ function draw(v,c,w,h) {
 function genericOnClick(info) {
 	console.log(info.srcUrl);
 	nameFile = info.srcUrl.substring(info.srcUrl.lastIndexOf('/')+1).split(".")[0];
-
-	var hiddenElement = document.createElement('video');
-	hiddenElement.addEventListener("loadedmetadata", function (e) {
+	
+	eleVideo.addEventListener('loadeddata', function(){
+		console.log("First frame loaded");
+		draw(this,context,widthVideo,heightVideo);
+	}, false );
+	eleVideo.addEventListener("loadedmetadata", function (e) {
+		console.log("Metadata loaded");
 		widthVideo = this.videoWidth;
 		heightVideo = this.videoHeight;		
-		hiddenElement.play();
+		eleVideo.play();
 	}, false );
-	hiddenElement.addEventListener("ended", function (e) {
+	eleVideo.addEventListener("ended", function (e) {
 		flag = false;
-		console.log("Play Ended");
+		console.log("Play ended");
 		worker.postMessage({});
-	}, false );	
-	hiddenElement.addEventListener('play', function(){
-		console.log("Play Start");
+	}, false );
+	eleVideo.addEventListener('play', function(){
+		console.log("Play start");
 		canvas.width = widthVideo;
 		canvas.height = heightVideo;
 		flag = true;
-		worker.postMessage({delay:delay,w:widthVideo,h:heightVideo});		
-		draw(this,context,widthVideo,heightVideo);
+		worker.postMessage({delay:delay,w:widthVideo,h:heightVideo});	
 	},false);
 	
-	hiddenElement.src = info.srcUrl;
-	hiddenElement.playbackRate = 1.0;
-	hiddenElement.preload = "metadata";
-	hiddenElement.innerHTML = '<source src="' + hiddenElement.src + '" type="video/mp4 preload="metadata" />';
+	eleVideo.src = info.srcUrl;
+	eleVideo.playbackRate = 1.0;
+	eleVideo.preload = "metadata";
+	eleVideo.innerHTML = '<source src="' + eleVideo.src + '" type="video/mp4 preload="metadata" />';
 }
 
 // Create one test item for each context type.
