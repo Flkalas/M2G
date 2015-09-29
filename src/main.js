@@ -7,7 +7,6 @@ var flag = false;
 var delay = 100;
 var widthVideo;
 var heightVideo;
-var eleVideo = document.createElement('video');
 var canvas = document.createElement('canvas');
 var context = canvas.getContext('2d');
 
@@ -39,6 +38,8 @@ function draw(v,c,w,h) {
 function genericOnClick(info) {
 	console.log(info.srcUrl);
 	nameFile = info.srcUrl.substring(info.srcUrl.lastIndexOf('/')+1).split(".")[0];
+	
+	var eleVideo = document.createElement('video');
 	
 	eleVideo.addEventListener('loadeddata', function(){
 		console.log("First frame loaded");
