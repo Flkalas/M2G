@@ -10,6 +10,7 @@ var playbackRate = 2.0;
 var canvas = document.createElement('canvas');
 var context = canvas.getContext('2d');
 var queue = [];
+var tabsTarget = [];
 
 var createVideoElement;
 
@@ -17,6 +18,17 @@ function processNextTask(){
 	if(queue.length < 1){
 		running = false;
 		console.log("Worker All Jobs Done");
+		
+		chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+			console.log(tabsTarget);
+			for (var i=0; i<tabsTarget.length; i++) {
+				chrome.tabs.sendMessage(tabsTarget[i], {greeting: "bye"}, function(response){
+					console.log(response.farewell);
+				});
+			}
+			tabsTarget = [];
+		});
+		
 		return running;
 	}
 	
@@ -90,14 +102,48 @@ createVideoElement = function(src){
 	eleVideo.src = src;
 	eleVideo.playbackRate = playbackRate;
 	eleVideo.preload = "metadata";
-	eleVideo.innerHTML = '<source src="' + eleVideo.src + '" type="video/mp4 preload="metadata" />';	
+	eleVideo.innerHTML = '<source src="' + eleVideo.src + '" type="video/mp4 preload="metadata" />';
 };
+
+function uniquelizeArray(arrDuplicated){
+	if(arrDuplicated.length < 2){
+		return arrDuplicated;
+	}	
+	
+	var arrSorted = arrDuplicated.sort();
+	console.log(arrSorted);
+	arrDuplicated = [];
+	
+	console.log(arrSorted);
+	
+	arrDuplicated.push(arrSorted[0]);
+	for (var i = 1; i < arrSorted.length; i++) {
+		if(arrSorted[i-1] != arrSorted[i]){
+			arrDuplicated.push(arrSorted[i]);
+		}
+	}
+	console.log(arrDuplicated);
+	
+	return arrDuplicated;	
+}
 
 // A generic onclick callback function.
 function genericOnClick(info) {
 	console.log(info.srcUrl);
-	queue.push(info.srcUrl);	
+	queue.push(info.srcUrl);
 	activate();
+	
+	chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {		
+		chrome.tabs.sendMessage(tabs[0].id, {greeting: "hello"}, function(response) {
+			tabsTarget.push(tabs[0].id);
+			tabsTarget = uniquelizeArray(tabsTarget);
+			console.log(tabsTarget);
+
+			console.log(response.farewell);
+			
+		});
+	});
+		
 }
 
 // Create one test item for each context type.
