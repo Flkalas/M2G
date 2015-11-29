@@ -2,14 +2,15 @@
 	"manifest_version": 2,
 	"name": "MP4 to GIF for Twitter",
 	"description": "This extension convert and save MP4 video to GIF animated picture for Twitter.",	
-	"version": "1.2",
+	"version": "1.2.1",
 	
 	"permissions": [
 		"tabs",
 		"contextMenus",
 		"activeTab",
 		"<all_urls>",
-		"downloads"
+		"downloads",
+		"storage"
 	],
 	"icons": {
 		"16": "icon-bitty.png",
@@ -30,5 +31,9 @@
 	],
 	"background": {
 		"scripts": ["main.js"]
+	},
+	"options_ui": {
+		"page": "options.html",
+		"chrome_style": true
 	}
 }

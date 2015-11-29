@@ -5,7 +5,7 @@ var worker;
 var nameFile;
 var running = false;
 var flag = false;
-var delay = 80;
+var delay = 66;
 var playbackRate = 2.0;
 var canvas = document.createElement('canvas');
 var context = canvas.getContext('2d');
@@ -18,16 +18,14 @@ function processNextTask(){
 	if(queue.length < 1){
 		running = false;
 		console.log("Worker All Jobs Done");
+		console.log(tabsTarget);
 		
-		chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
-			console.log(tabsTarget);
-			for (var i=0; i<tabsTarget.length; i++) {
-				chrome.tabs.sendMessage(tabsTarget[i], {greeting: "bye"}, function(response){
-					console.log(response.farewell);
-				});
-			}
-			tabsTarget = [];
-		});
+		for (var i=0; i<tabsTarget.length; i++) {
+			chrome.tabs.sendMessage(tabsTarget[i], {greeting: "bye"}, function(response){
+				console.log(response.farewell);
+			});
+		}
+		tabsTarget = [];
 		
 		return running;
 	}
@@ -57,9 +55,31 @@ function initWorker() {
 	worker = new Worker('worker.js');	
 	worker.onmessage = function (event) {
 		console.log("Process Ended");
-		var u8Array = new Uint8Array(atob(event.data).split("").map(function(c){return c.charCodeAt(0); }));
-		getDownloadLink(u8Array);
-		processNextTask();
+		chrome.storage.sync.get({
+			spcificPathName: false
+		}, function(items){
+			console.log(items.spcificPathName);
+			if(items.spcificPathName){
+				console.log("New Window");
+				chrome.tabs.create({
+					url:"emptyPage.html"
+				},function sendImage(targetTab){					
+					chrome.tabs.sendMessage(targetTab.id, {
+						greeting: "sendImage",
+						dataImage: event.data,
+						nameOrgin: nameFile
+					},function(response){
+						console.log(response.farewell);
+					});
+				});
+			}	
+			else{
+				console.log("Auto Download");
+				var u8Array = new Uint8Array(atob(event.data).split("").map(function(c){return c.charCodeAt(0); }));
+				getDownloadLink(u8Array);
+			}
+			processNextTask();
+		});
 	};
 }
 
@@ -67,7 +87,7 @@ function draw(v,c,w,h) {
 	if(v.paused || v.ended)	return false;
 	c.drawImage(v,0,0,w,h);
 	if(flag == true){			
-		var imdata = c.getImageData(0,0,w,h);		
+		var imdata = c.getImageData(0,0,w,h);
 		worker.postMessage({frame: imdata});		
 	}
 	setTimeout(draw,delay/playbackRate,v,c,w,h);
@@ -101,7 +121,7 @@ createVideoElement = function(src){
 	
 	eleVideo.src = src;
 	eleVideo.playbackRate = playbackRate;
-	eleVideo.preload = "metadata";
+	eleVideo.preload = "auto";
 	eleVideo.innerHTML = '<source src="' + eleVideo.src + '" type="video/mp4 preload="metadata" />';
 };
 
@@ -133,14 +153,12 @@ function genericOnClick(info) {
 	queue.push(info.srcUrl);
 	activate();
 	
-	chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {		
+	chrome.tabs.query({active: true, currentWindow: true}, function(tabs){
 		chrome.tabs.sendMessage(tabs[0].id, {greeting: "hello"}, function(response) {
 			tabsTarget.push(tabs[0].id);
 			tabsTarget = uniquelizeArray(tabsTarget);
 			console.log(tabsTarget);
-
 			console.log(response.farewell);
-			
 		});
 	});
 		
@@ -150,3 +168,10 @@ function genericOnClick(info) {
 var title = "Save as GIF";
 var id = chrome.contextMenus.create({"title": title, "contexts":["video"],"onclick": genericOnClick});
 initWorker();
+
+chrome.runtime.onMessage.addListener(
+	function(request, sender, sendResponse) {
+		if(request.greeting == "reqImage"){
+
+		}
+	});
