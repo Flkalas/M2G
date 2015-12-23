@@ -46,11 +46,6 @@ function activate(){
 	processNextTask();
 }
 
-function getDownloadLink(fileData){
-	var blob = new Blob([fileData]);
-	chrome.downloads.download({url: window.URL.createObjectURL(blob), filename: nameFile+".gif" },function(id){});
-}
-
 function initWorker() {
 	worker = new Worker('worker.js');	
 	worker.onmessage = function (event) {
@@ -63,20 +58,24 @@ function initWorker() {
 				console.log("New Window");
 				chrome.tabs.create({
 					url:"emptyPage.html"
-				},function sendImage(targetTab){					
-					chrome.tabs.sendMessage(targetTab.id, {
-						greeting: "sendImage",
-						dataImage: event.data,
-						nameOrgin: nameFile
-					},function(response){
-						console.log(response.farewell);
-					});
+				},function sendImage(targetTab){
+					chrome.runtime.onMessage.addListener(
+						function(request, sender, sendResponse) {
+							if(request.greeting == "reqImage"){
+								chrome.tabs.sendMessage(targetTab.id, {
+									greeting: "sendImage",
+									dataImage: event.data,
+									nameOrgin: nameFile
+								});
+							}
+						}
+					);
 				});
 			}	
 			else{
 				console.log("Auto Download");
-				var u8Array = new Uint8Array(atob(event.data).split("").map(function(c){return c.charCodeAt(0); }));
-				getDownloadLink(u8Array);
+				repreData = "data:image/gif;base64," + event.data;
+				chrome.downloads.download({url: repreData, filename: nameFile+".gif" },function(id){});
 			}
 			processNextTask();
 		});
@@ -169,9 +168,3 @@ var title = "Save as GIF";
 var id = chrome.contextMenus.create({"title": title, "contexts":["video"],"onclick": genericOnClick});
 initWorker();
 
-chrome.runtime.onMessage.addListener(
-	function(request, sender, sendResponse) {
-		if(request.greeting == "reqImage"){
-
-		}
-	});
