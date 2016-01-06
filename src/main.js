@@ -15,10 +15,16 @@ var tabsTarget = [];
 var createVideoElement;
 
 function processNextTask(){
-	if(queue.length < 1){
+	if(running){
+		worker.terminate();
+		console.log("Worker Terminated.");
+	}
+	
+	if(queue.length < 1){		
 		running = false;
-		console.log("Worker All Jobs Done");
-		console.log(tabsTarget);
+		worker.terminate();
+		console.log("Worker All Jobs Done");		
+		console.log(tabsTarget);		
 		
 		for (var i=0; i<tabsTarget.length; i++) {
 			chrome.tabs.sendMessage(tabsTarget[i], {greeting: "bye"}, function(response){
@@ -30,10 +36,13 @@ function processNextTask(){
 		return running;
 	}
 	
+	running = true;		
+	console.log("Worker Activates.");
+	initWorker();
 	console.log("Now Left Task: ",queue.length);
 	var src = queue.shift();
 	createVideoElement(src);
-	return true;	
+	return true;
 }
 
 function activate(){
@@ -41,8 +50,6 @@ function activate(){
 		return false;
 	}
 	
-	console.log("Worker Activates.");
-	running = true;
 	processNextTask();
 }
 
@@ -74,7 +81,7 @@ function initWorker() {
 			}	
 			else{
 				console.log("Auto Download");
-				repreData = "data:image/gif;base64," + event.data;
+				var repreData = "data:image/gif;base64," + event.data;
 				chrome.downloads.download({url: repreData, filename: nameFile+".gif" },function(id){});
 			}
 			processNextTask();
@@ -166,5 +173,5 @@ function genericOnClick(info) {
 // Create one test item for each context type.
 var title = "Save as GIF";
 var id = chrome.contextMenus.create({"title": title, "contexts":["video"],"onclick": genericOnClick});
-initWorker();
+
 

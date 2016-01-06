@@ -21,7 +21,7 @@ chrome.runtime.onMessage.addListener(
 			"from a content script:" + sender.tab.url :
 			"from the extension");
 		if (request.greeting == "sendImage"){
-			repreData = "data:image/gif;base64," + request.dataImage;
+			var repreData = "data:image/gif;base64," + request.dataImage;
 			console.log(repreData);
 			document.getElementById('imageresult').src = repreData;
 			var u8Array = new Uint8Array(atob(request.dataImage).split("").map(function(c){return c.charCodeAt(0); }));
