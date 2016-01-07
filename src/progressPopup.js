@@ -52,6 +52,18 @@ function findIframeTag(strHTML){
 	return res;	
 }
 
+function findExternalIframeContainerDiv(strHTML){
+	var res = [];
+	var parsed = strHTML.split("<");
+	for(var i in parsed){
+		if((!parsed[i].search("div"))&&(parsed[i].search("ExternalIframeContainer")>0) ){
+			return parsed[i];
+		}
+	}
+	
+	return false;
+}
+
 function findIDnumber(iframeTag){
 	var parsed = iframeTag.split(" ");
 	for(var i in parsed){
@@ -62,29 +74,11 @@ function findIDnumber(iframeTag){
 	return false;
 }
 
-function findSourceURL(iframeTag){
-	var parsed = iframeTag.split('"');
-	var stop = false;
-	for(var i in parsed){
-		if(stop){
-			console.log(parsed[i]);
-			return parsed[i];
-		}
-		if(parsed[i].search("src") > 0){
-			console.log(parsed[i]);						
-			stop = true;
-		}
+function isTargetInHTML(idTarget,strHTML){
+	if(strHTML.search(idTarget) > 0){
+		return findExternalIframeContainerDiv(strHTML)
 	}
-	return false;
-}
-
-function isTargetInIframeTags(idTarget,iframeTags){
-	for(var i in iframeTags){
-		if(iframeTags[i].search(idTarget) > 0){
-			console.log(iframeTags[i]);
-			return findSourceURL(iframeTags[i]);
-		}
-	}
+	
 	return false;
 }
 
@@ -109,46 +103,23 @@ chrome.runtime.onMessage.addListener(
 			sendResponse({farewell: "bye"});
 		}
 		else if(request.greeting == "saveVideo"){
-			console.log(request);
-			
 			var iframeTags = findIframeTag($('body').html().toString());
 			for(var i in iframeTags){
 				var nowID = findIDnumber(iframeTags[i]);
 				if(nowID){
-					var subIframeTags = findIframeTag($("#"+nowID).contents().find("body").html());
-					var res = isTargetInIframeTags(request.idVideo,subIframeTags);
+					var res = isTargetInHTML(request.idVideo,$("#"+nowID).contents().find("body").html());
 					if(res){
-						console.log(res);
-						var req = new XMLHttpRequest();
-						req.open('GET', 'src', true);
-						req.onreadystatechange = function (aEvt) {
-						  if (req.readyState == 4) {
-							 if(req.status == 200)
-							  console.log(req.responseText);
-							 else
-							  console.log("Error loading page\n");
-						  }
-						};
-						req.send(null);
+						var subDivStr= res.substring(res.search("video.twimg.com"),res.length-1).split("&")[0].split("\\");
+						var targetVideoSource = "https://";
+						for(var i in subDivStr){
+							targetVideoSource += subDivStr[i];
+						}
+						console.log(targetVideoSource);
+						sendResponse({srcVideo: targetVideoSource});
 					}
+
 				}
 			}
-			
-			
-			/*var idTry;
-			var parsed = $('body').html().toString().split("<");
-			for(var i in parsed){
-				if(!parsed[i].search("iframe")){					
-					var subParsed = parsed[i].split(" ");
-					for(var i in subParsed){
-						if(!subParsed[i].search("id")){
-							idTry = "#" + subParsed[i].split("=")[1].replace(/['"]+/g, '');
-							console.log(idTry);
-							console.log($(idTry).contents().find("body").html())
-						}
-					}
-				}
-			}*/
 		}
 });
 
