@@ -170,8 +170,22 @@ function genericOnClick(info) {
 		
 }
 
-// Create one test item for each context type.
-var title = "Save as GIF";
-var id = chrome.contextMenus.create({"title": title, "contexts":["video"],"onclick": genericOnClick});
+function saveVideo(info){	
+	var parsed = info.frameUrl.split("&");
+	var idSearch;	
+	for(var i in parsed){
+		if(!parsed[i].search("xdm_c")){
+			idSearch = parsed[i].split("=")[1];
+			console.log(idSearch);
+		}
+	}
+	
+	chrome.tabs.query({active: true, currentWindow: true}, function(tabs){
+		chrome.tabs.sendMessage(tabs[0].id, {greeting: "saveVideo", idVideo: idSearch});
+	});
+}
 
+// Create one test item for each context type.
+chrome.contextMenus.create({"title": "Save as GIF", "contexts":["video"],"onclick": genericOnClick});
+chrome.contextMenus.create({"title": "Save this Twitter video", "contexts":["frame"],"onclick": saveVideo});
 
