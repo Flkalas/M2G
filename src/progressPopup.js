@@ -74,12 +74,26 @@ function findIDnumber(iframeTag){
 	return false;
 }
 
+function findTargetVmap(tagDiv){
+	var rawVmap = tagDiv.substring(tagDiv.search("data-player-config="),tagDiv.length-1).split('"')[1];	
+	var rawVmapDecoded = $('<textarea />').html(rawVmap).text().replace(/\\/g, '');
+	var vmapURL = rawVmapDecoded.substring(rawVmapDecoded.search('"vmapUrl":'),rawVmapDecoded.length-1).split('"')[3];
+	
+	return vmapURL;
+}
+
 function isTargetInHTML(idTarget,strHTML){
-	if(strHTML.search(idTarget) > 0){
-		return findExternalIframeContainerDiv(strHTML)
+	var posID = String(strHTML).search(idTarget);
+	if(posID >= 0){
+		return findExternalIframeContainerDiv(strHTML);
 	}
 	
 	return false;
+}
+
+function isComplecateVideo(tagDiv){	
+	var isVmap = tagDiv.search("vmap") > -1;
+	return isVmap;
 }
 
 chrome.runtime.onMessage.addListener(
@@ -107,17 +121,32 @@ chrome.runtime.onMessage.addListener(
 			for(var i in iframeTags){
 				var nowID = findIDnumber(iframeTags[i]);
 				if(nowID){
-					var res = isTargetInHTML(request.idVideo,$("#"+nowID).contents().find("body").html());
-					if(res){
-						var subDivStr= res.substring(res.search("video.twimg.com"),res.length-1).split("&")[0].split("\\");
-						var targetVideoSource = "https://";
-						for(var i in subDivStr){
-							targetVideoSource += subDivStr[i];
+					var tagDiv = isTargetInHTML(request.idVideo,$("#"+nowID).contents().find("body").html())
+										
+					if(tagDiv){
+						if(isComplecateVideo(tagDiv)){
+							console.log("Complecate");
+							var vmapURL = findTargetVmap(tagDiv);
+							
+							$.get(vmapURL, function(responseText) {
+								var strResponse = (new XMLSerializer()).serializeToString(responseText);
+								var targetVideoSource = strResponse.substring(strResponse.search("http://amp.twimg.com"),strResponse.length-1).split(']')[0];
+								console.log(targetVideoSource);
+								chrome.runtime.sendMessage({srcVideo: targetVideoSource});
+							});
 						}
-						console.log(targetVideoSource);
-						sendResponse({srcVideo: targetVideoSource});
+						else{
+							console.log("Easy");
+							
+							var subDivStr= tagDiv.substring(tagDiv.search("video.twimg.com"),tagDiv.length-1).split("&")[0].split("\\");
+							var targetVideoSource = "https://";
+							for(var i in subDivStr){
+								targetVideoSource += subDivStr[i];
+							}
+							console.log(targetVideoSource);
+							chrome.runtime.sendMessage({srcVideo: targetVideoSource});
+						}
 					}
-
 				}
 			}
 		}

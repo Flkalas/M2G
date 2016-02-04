@@ -153,7 +153,6 @@ function uniquelizeArray(arrDuplicated){
 	return arrDuplicated;	
 }
 
-// A generic onclick callback function.
 function genericOnClick(info) {
 	console.log(info.srcUrl);
 	queue.push(info.srcUrl);
@@ -182,16 +181,24 @@ function saveVideo(info){
 	}
 	
 	chrome.tabs.query({active: true, currentWindow: true}, function(tabs){
-		chrome.tabs.sendMessage(tabs[0].id, {greeting: "saveVideo", idVideo: idSearch},function(response){
-			chrome.storage.sync.get({spcificPathName: false}, function(items){
-				console.log(items.spcificPathName);
-				chrome.downloads.download({url: response.srcVideo, saveAs: items.spcificPathName});
-			});
-		});
+		chrome.tabs.sendMessage(tabs[0].id, {greeting: "saveVideo", idVideo: idSearch});
 	});	
 }
 
-// Create one test item for each context type.
 chrome.contextMenus.create({"title": "Save as GIF", "contexts":["video"],"onclick": genericOnClick});
 chrome.contextMenus.create({"title": "Save this Twitter video", "contexts":["frame"],"onclick": saveVideo});
+
+chrome.runtime.onMessage.addListener(
+	function(request, sender, sendResponse){
+		console.log(sender.tab ? "from a content script:" + sender.tab.url :"from the extension");
+		if (request.srcVideo){
+			console.log("Video finded.");
+			chrome.storage.sync.get({spcificPathName: false}, function(items){
+				console.log(items.spcificPathName);
+				chrome.downloads.download({url: request.srcVideo, saveAs: items.spcificPathName});
+			});
+		}
+		
+	}
+)
 
