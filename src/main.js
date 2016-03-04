@@ -154,7 +154,7 @@ function uniquelizeArray(arrDuplicated){
 }
 
 function genericOnClick(info) {
-	console.log(info.srcUrl);
+	console.log(info);	
 	queue.push(info.srcUrl);
 	activate();
 	
@@ -169,20 +169,64 @@ function genericOnClick(info) {
 		
 }
 
+function downloadVideo(request){
+	if (request.srcVideo){
+		console.log("Video finded.");
+		console.log(request.srcVideo);
+		chrome.storage.sync.get({spcificPathName: false}, function(items){
+			console.log(items.spcificPathName);
+			chrome.downloads.download({url: request.srcVideo, saveAs: items.spcificPathName});
+		});
+	}
+}
+
 function saveVideo(info){
-	var parsed = info.frameUrl.split("&");
+	console.log(info);
+	
+	var parsed = info.frameUrl.split("&");	
 	var idSearch;
+	var isGIF = true;
 	
 	for(var i in parsed){
 		if(!parsed[i].search("xdm_c")){
 			idSearch = parsed[i].split("=")[1];
+			console.log("It is video.");
+			isGIF = false;
 			console.log(idSearch);
-		}
+			
+			chrome.tabs.query({active: true, currentWindow: true}, function(tabs){
+				chrome.tabs.sendMessage(tabs[0].id, {greeting: "saveVideo", idVideo: idSearch});
+			});	
+		}		
 	}
 	
-	chrome.tabs.query({active: true, currentWindow: true}, function(tabs){
-		chrome.tabs.sendMessage(tabs[0].id, {greeting: "saveVideo", idVideo: idSearch});
-	});	
+	if(isGIF){
+		console.log("It is NEW type.");
+		var xhr = new XMLHttpRequest();
+		xhr.onload = function (e) {
+			if (xhr.readyState === 4) {
+				if (xhr.status === 200) {
+					var parsed = xhr.responseText.replace(/&quot;/g,'"').replace(/\\/g, '').split('"');
+					for(var i in parsed){
+						if((parsed[i].search("pbs.twimg.com")>0)&&(parsed[i].search("mp4")>0)){
+							console.log("And it is GIF.");
+							console.log(parsed[i]);
+							genericOnClick({"srcUrl": parsed[i]});
+							break;
+						}
+						else if((parsed[i].search("video.twimg.com")>0)&&(parsed[i].search("mp4")>0)){
+							console.log("And it is Video.");
+							console.log(parsed[i]);
+							downloadVideo({"srcVideo": parsed[i]});
+							break;
+						}
+					}
+				}
+			}
+		}
+		xhr.open('GET', info.frameUrl, true);
+		xhr.send(null);
+	}
 }
 
 chrome.contextMenus.create({"title": "Save as GIF", "contexts":["video"],"onclick": genericOnClick});
@@ -191,14 +235,7 @@ chrome.contextMenus.create({"title": "Save this Twitter video", "contexts":["fra
 chrome.runtime.onMessage.addListener(
 	function(request, sender, sendResponse){
 		console.log(sender.tab ? "from a content script:" + sender.tab.url :"from the extension");
-		if (request.srcVideo){
-			console.log("Video finded.");
-			chrome.storage.sync.get({spcificPathName: false}, function(items){
-				console.log(items.spcificPathName);
-				chrome.downloads.download({url: request.srcVideo, saveAs: items.spcificPathName});
-			});
-		}
-		
+		downloadVideo(request)		
 	}
 )
 
