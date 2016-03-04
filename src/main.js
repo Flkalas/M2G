@@ -180,18 +180,32 @@ function downloadVideo(request){
 	}
 }
 
+function parseVmapPage(url){
+	var xhr = new XMLHttpRequest();
+	xhr.onload = function (e) {
+		if ((xhr.readyState === 4) && (xhr.status === 200)) {
+			console.log("Vmap download complete. parsing...");
+			var targetVideoSource = xhr.responseText.substring(xhr.responseText.search("http://amp.twimg.com"),xhr.responseText.length-1).split(']')[0];			
+			console.log(targetVideoSource);
+			downloadVideo({"srcVideo": targetVideoSource});
+		}
+	}
+	xhr.open('GET', url, true);
+	xhr.send(null);
+}
+
 function saveVideo(info){
 	console.log(info);
 	
 	var parsed = info.frameUrl.split("&");	
 	var idSearch;
-	var isGIF = true;
+	var isNewType = true;
 	
 	for(var i in parsed){
 		if(!parsed[i].search("xdm_c")){
 			idSearch = parsed[i].split("=")[1];
 			console.log("It is video.");
-			isGIF = false;
+			isNewType = false;
 			console.log(idSearch);
 			
 			chrome.tabs.query({active: true, currentWindow: true}, function(tabs){
@@ -200,7 +214,7 @@ function saveVideo(info){
 		}		
 	}
 	
-	if(isGIF){
+	if(isNewType){
 		console.log("It is NEW type.");
 		var xhr = new XMLHttpRequest();
 		xhr.onload = function (e) {
@@ -215,10 +229,15 @@ function saveVideo(info){
 							break;
 						}
 						else if((parsed[i].search("video.twimg.com")>0)&&(parsed[i].search("mp4")>0)){
-							console.log("And it is Video.");
+							console.log("And it is Easy Video.");
 							console.log(parsed[i]);
 							downloadVideo({"srcVideo": parsed[i]});
 							break;
+						}
+						else if((parsed[i].search("amp.twimg.com")>0)&&(parsed[i].search("vmap")>0)){
+							console.log("And it is Hard Video.");
+							console.log(parsed[i]);
+							parseVmapPage(parsed[i]);
 						}
 					}
 				}
