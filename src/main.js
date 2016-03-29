@@ -14,6 +14,42 @@ var tabsTarget = [];
 
 var createVideoElement;
 
+function downloadMP4(src){
+	chrome.storage.sync.get({
+			spcificPathName: false,
+			isSaveMP4: false
+		}, function(items){
+		console.log(items);
+		if(items.isSaveMP4){			
+			chrome.downloads.download({url: src, saveAs: items.spcificPathName});
+		}
+	});
+	
+}
+
+function convertGIF(src){
+	chrome.storage.sync.get({
+			isConvertGIF: false
+		}, function(items){
+		console.log(items);
+		if(items.isConvertGIF){	
+			running = true;		
+			console.log("Worker Activates.");
+			initWorker();
+			console.log("Now Left Task: ",queue.length);
+			chrome.tabs.query({active: true, currentWindow: true}, function(tabs){
+				chrome.tabs.sendMessage(tabs[0].id, {greeting: "hello"}, function(response) {
+					tabsTarget.push(tabs[0].id);
+					tabsTarget = uniquelizeArray(tabsTarget);
+					console.log(tabsTarget);
+					console.log(response.farewell);
+				});
+			});
+			createVideoElement(src);
+		}
+	});	
+}
+
 function processNextTask(){
 	if(running){
 		worker.terminate();
@@ -21,10 +57,9 @@ function processNextTask(){
 	}
 	
 	if(queue.length < 1){		
-		running = false;
-		worker.terminate();
-		console.log("Worker All Jobs Done");		
-		console.log(tabsTarget);		
+		running = false;		
+		console.log("Worker All Jobs Done");
+		console.log(tabsTarget);
 		
 		for (var i=0; i<tabsTarget.length; i++) {
 			chrome.tabs.sendMessage(tabsTarget[i], {greeting: "bye"}, function(response){
@@ -35,14 +70,13 @@ function processNextTask(){
 		
 		return running;
 	}
-	
-	running = true;		
-	console.log("Worker Activates.");
-	initWorker();
-	console.log("Now Left Task: ",queue.length);
-	var src = queue.shift();
-	createVideoElement(src);
-	return true;
+	else{
+		var src = queue.shift();
+		downloadMP4(src);
+		convertGIF(src);
+		processNextTask();
+		return true;		
+	}
 }
 
 function activate(){
@@ -84,6 +118,7 @@ function initWorker() {
 				var repreData = "data:image/gif;base64," + event.data;
 				chrome.downloads.download({url: repreData, filename: nameFile+".gif" },function(id){});
 			}
+			worker.terminate();
 			processNextTask();
 		});
 	};
@@ -158,14 +193,7 @@ function genericOnClick(info) {
 	queue.push(info.srcUrl);
 	activate();
 	
-	chrome.tabs.query({active: true, currentWindow: true}, function(tabs){
-		chrome.tabs.sendMessage(tabs[0].id, {greeting: "hello"}, function(response) {
-			tabsTarget.push(tabs[0].id);
-			tabsTarget = uniquelizeArray(tabsTarget);
-			console.log(tabsTarget);
-			console.log(response.farewell);
-		});
-	});
+
 		
 }
 
@@ -216,35 +244,54 @@ function saveVideo(info){
 	
 	if(isNewType){
 		console.log("It is NEW type.");
-		var xhr = new XMLHttpRequest();
-		xhr.onload = function (e) {
-			if (xhr.readyState === 4) {
-				if (xhr.status === 200) {
-					var parsed = xhr.responseText.replace(/&quot;/g,'"').replace(/\\/g, '').split('"');
-					for(var i in parsed){
-						if((parsed[i].search("pbs.twimg.com")>0)&&(parsed[i].search("mp4")>0)){
-							console.log("And it is GIF.");
-							console.log(parsed[i]);
-							genericOnClick({"srcUrl": parsed[i]});
-							break;
-						}
-						else if((parsed[i].search("video.twimg.com")>0)&&(parsed[i].search("mp4")>0)){
-							console.log("And it is Easy Video.");
-							console.log(parsed[i]);
-							downloadVideo({"srcVideo": parsed[i]});
-							break;
-						}
-						else if((parsed[i].search("amp.twimg.com")>0)&&(parsed[i].search("vmap")>0)){
-							console.log("And it is Hard Video.");
-							console.log(parsed[i]);
-							parseVmapPage(parsed[i]);
+		var isNotTweetDeck = true;
+		
+		console.log(info.frameUrl);
+		var parsed = info.frameUrl.split('&');
+		for(var i in parsed){
+			if((parsed[i].search("video.twimg.com")>0)&&(parsed[i].search("mp4")>0)){
+				var videoUrl = parsed[i].split('=');
+				console.log("TweetDeck Video.");
+				console.log(videoUrl[1]);
+				isNotTweetDeck = true;
+				downloadVideo({"srcVideo": videoUrl[1]});				
+				break;
+			}
+		}
+		
+		
+		if(isNotTweetDeck){
+			var xhr = new XMLHttpRequest();
+			xhr.onload = function (e) {
+				if (xhr.readyState === 4) {
+					if (xhr.status === 200) {					
+						var parsed = xhr.responseText.replace(/&quot;/g,'"').replace(/\\/g, '').split('"');					
+						for(var i in parsed){
+							if((parsed[i].search("pbs.twimg.com")>0)&&(parsed[i].search("mp4")>0)){
+								console.log("And it is GIF.");
+								console.log(parsed[i]);
+								genericOnClick({"srcUrl": parsed[i]});
+								break;
+							}
+							else if((parsed[i].search("video.twimg.com")>0)&&(parsed[i].search("mp4")>0)){
+								console.log("And it is Easy Video.");
+								console.log(parsed[i]);
+								downloadVideo({"srcVideo": parsed[i]});
+								break;
+							}
+							else if((parsed[i].search("amp.twimg.com")>0)&&(parsed[i].search("vmap")>0)){
+								console.log("And it is Hard Video.");
+								console.log(parsed[i]);
+								parseVmapPage(parsed[i]);
+								break;
+							}
 						}
 					}
 				}
 			}
+			xhr.open('GET', info.frameUrl, true);
+			xhr.send(null);
 		}
-		xhr.open('GET', info.frameUrl, true);
-		xhr.send(null);
 	}
 }
 

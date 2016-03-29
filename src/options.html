@@ -1,17 +1,25 @@
 <!DOCTYPE html>
 <html>
 	<head>
-		<title>MP4 to GIF Option Page</title>
-		<link rel="stylesheet" type="text/css" href="options.css">
+		<title>MP4 to GIF Option Page</title>		
 	</head>
 	<body>
-		<label>
+		<label>			
+			■　I want to specify download path and file name 
 			<input type="checkbox" id="specific">
-			I want to specify download path and file name.
+			<br><br>
+		</label>
+		<label>
+			■　I want to save Twitter GIF as 
+			<select id="gifSaveAs">
+				<option value="gif">GIF</option>
+				<option value="mp4">MP4</option>
+				<option value="both">GIF+MP4</option>	
+			</select>
+			<br>
 		</label>
 		<p></p>
 		<div id="status" class="stat">&nbsp</div>
-		
 		<script src="options.js"></script>
 	</body>
 </html>
