@@ -12,6 +12,10 @@ var context = canvas.getContext('2d');
 var queue = [];
 var tabsTarget = [];
 
+var queueReadytoJoinVideo = [];
+var queueJoinVideo = []
+var videoBuffer = new Uint8Array(0);
+
 var createVideoElement;
 
 function downloadMP4(src){
@@ -29,7 +33,7 @@ function downloadMP4(src){
 
 function convertGIF(src){
 	chrome.storage.sync.get({
-			isConvertGIF: false
+			isConvertGIF: true
 		}, function(items){
 		console.log(items);
 		if(items.isConvertGIF){	
@@ -51,11 +55,6 @@ function convertGIF(src){
 }
 
 function processNextTask(){
-	if(running){
-		worker.terminate();
-		console.log("Worker Terminated.");
-	}
-	
 	if(queue.length < 1){		
 		running = false;		
 		console.log("Worker All Jobs Done");
@@ -119,6 +118,7 @@ function initWorker() {
 				chrome.downloads.download({url: repreData, filename: nameFile+".gif" },function(id){});
 			}
 			worker.terminate();
+			console.log("Worker Terminated.");
 			processNextTask();
 		});
 	};
@@ -130,7 +130,7 @@ function draw(v,c,w,h) {
 	if(flag == true){			
 		var imdata = c.getImageData(0,0,w,h);
 		worker.postMessage({frame: imdata});		
-	}
+	}	
 	setTimeout(draw,delay/playbackRate,v,c,w,h);
 }
 
@@ -192,9 +192,7 @@ function genericOnClick(info) {
 	console.log(info);	
 	queue.push(info.srcUrl);
 	activate();
-	
 
-		
 }
 
 function downloadVideo(request){
@@ -204,6 +202,17 @@ function downloadVideo(request){
 		chrome.storage.sync.get({spcificPathName: false}, function(items){
 			console.log(items.spcificPathName);
 			chrome.downloads.download({url: request.srcVideo, saveAs: items.spcificPathName});
+		});
+	}
+}
+
+function downloadTsVideo(data){
+	if (data){
+		console.log("Video encoded.");
+		//console.log(request.srcVideo);
+		chrome.storage.sync.get({spcificPathName: false}, function(items){
+			console.log(items.spcificPathName);
+			chrome.downloads.download({url: data, saveAs: items.spcificPathName, filename: nameFile+".ts"});
 		});
 	}
 }
@@ -220,6 +229,185 @@ function parseVmapPage(url){
 	}
 	xhr.open('GET', url, true);
 	xhr.send(null);
+}
+
+function parsePlaylist(url){
+	nameFile = url.substring(url.lastIndexOf('/')+1).split(".")[0];
+	//console.log("nameFile: ", nameFile);	
+	var xhr = new XMLHttpRequest();
+	xhr.onload = function (e) {
+		if ((xhr.readyState === 4) && (xhr.status === 200)) {
+			console.log("Playlist download complete. parsing...");			
+			var targetPlaylist = findMaxBandwidthSource(xhr.responseText);
+			console.log(targetPlaylist);
+			downloadPlaylist(targetPlaylist);
+		}
+	}
+	xhr.open('GET', url, true);
+	xhr.send(null);
+}
+
+function downloadPlaylist(url){
+	if(url == ""){
+		return -1;
+	}
+	
+	var xhr = new XMLHttpRequest();
+	xhr.onload = function (e) {
+		if ((xhr.readyState === 4) && (xhr.status === 200)) {
+			console.log("Maximum bandwidth playlist download complete. download...");			
+			var targetPlaylist = getTotalPlaylist(xhr.responseText);			
+			activateSequence(targetPlaylist);
+			//downloadVideo({"srcVideo": targetVideoSource});
+		}
+	}
+	xhr.open('GET', url, true);
+	xhr.send(null);
+}
+
+function activateSequence(arrUrls){
+	queueReadytoJoinVideo.push(arrUrls);
+	console.log(queueReadytoJoinVideo);
+	
+	if(queueJoinVideo.length == 0){
+		processNextVideo();
+	}
+}
+
+function processNextVideo(){
+	if(queueReadytoJoinVideo.length > 0){
+		queueJoinVideo = queueReadytoJoinVideo.shift();
+		console.log(queueJoinVideo);
+		accumTsFragment();
+	}	
+}
+
+function accumTsFragment(){
+	if(queueJoinVideo.length > 0){
+		var nowURL = queueJoinVideo.shift();
+		//console.log(queueJoinVideo.length, nowURL);		
+		downloadTsFragment(nowURL);		
+	}else{
+		//console.log(videoBuffer.length);
+		//console.log(videoBuffer);
+		
+		var b64 = "data:video/mp2t;base64," + u8aToB64(videoBuffer);
+		
+		//console.log(b64.length);
+		
+		downloadTsVideo(b64);
+		
+		//downloadByWorker(Uint8ToString(videoBuffer));
+		
+		videoBuffer = new Uint8Array(0);
+	}
+}
+
+function downloadByWorker(uint8string) {
+	worker = new Worker('workerB64.js');
+	worker.onmessage = function (event) {
+		console.log("Process Ended");
+		
+		console.log(event.data.length);
+		
+		console.log("Worker Terminated.");
+		worker.terminate();
+		processNextVideo();
+	
+	};
+	worker.postMessage({string: uint8string});
+}
+
+function Uint8ToString(u8a){
+	var CHUNK_SZ = 0x8000;
+	var c = [];
+	for (var i=0; i < u8a.length; i+=CHUNK_SZ) {
+		c.push(String.fromCharCode.apply(null, u8a.subarray(i, i+CHUNK_SZ)));
+	}
+	return c.join("");
+}
+
+function u8aToB64(uInt8Array){
+	return btoa(Uint8ToString(uInt8Array));
+}
+
+function downloadTsFragment(urlTs){
+	var xhr = new XMLHttpRequest();
+	xhr.responseType = "arraybuffer";
+	xhr.onload = function (e) {
+		var arrayBuffer = xhr.response;
+		if (arrayBuffer) {			
+			var now = new Uint8Array(arrayBuffer);
+			var prev = new Uint8Array(videoBuffer);
+			
+			videoBuffer = new Uint8Array(now.length + prev.length);
+			videoBuffer.set(prev);
+			videoBuffer.set(now, prev.length);
+			
+			//console.log(videoBuffer.length, now.length, prev.length);			
+			accumTsFragment();
+		}
+	}
+	xhr.open('GET', urlTs, true);
+	xhr.send(null);
+}
+
+function getTotalPlaylist(string){
+	var stringsSplited = string.split("#");
+	var arrPlaylist = [];
+	for(var i in stringsSplited){		
+		if(stringsSplited[i].search("ext_tw_video")>0){			
+			//console.log(i,stringsSplited[i].split("\n")[1]);
+			arrPlaylist.push("https://video.twimg.com"+stringsSplited[i].split("\n")[1]);
+		}
+	}
+
+	return arrPlaylist;
+}
+
+function findBandwidth(sourcePlaylist){
+	var stringsSplited = sourcePlaylist.split(",");
+	for(var i in stringsSplited){		
+		if(stringsSplited[i].search("BANDWIDTH") == 0){
+			//console.log(i,stringsSplited[i],stringsSplited[i].split("=")[1]);
+			return Number(stringsSplited[i].split("=")[1]);
+		}
+	}
+	return -1;
+}
+
+function findPlaylistSource(sourcePlaylist){
+	var stringsSplited = sourcePlaylist.split("\n");
+	for(var i in stringsSplited){
+		//console.log(i,stringsSplited[i]);
+		if((stringsSplited[i].search("ext_tw_video")>0)&&(stringsSplited[i].search("m3u8")>0)){
+			return "https://video.twimg.com"+stringsSplited[i];
+		}
+	}
+	return "";
+}
+
+function findMaxBandwidthSource(string){
+	var stringsSplited = string.split("#");
+	var arrBandwidth = [];
+	for(var i in stringsSplited){		
+		var bandwidth = findBandwidth(stringsSplited[i]);
+		//console.log(i,stringsSplited[i],bandwidth);
+		if(bandwidth > 0){
+			arrBandwidth.push(bandwidth);
+		}
+	}
+
+	var bandwidthMax = Math.max.apply(null,arrBandwidth);
+	//console.log(arrBandwidth, bandwidthMax);
+	
+	for(var i in stringsSplited){
+		if(bandwidthMax == findBandwidth(stringsSplited[i])){
+			//console.log(i,stringsSplited[i],bandwidthMax);
+			return findPlaylistSource(stringsSplited[i]);			
+		}
+	}
+	return "";
 }
 
 function saveVideo(info){
@@ -259,7 +447,6 @@ function saveVideo(info){
 			}
 		}
 		
-		
 		if(isNotTweetDeck){
 			var xhr = new XMLHttpRequest();
 			xhr.onload = function (e) {
@@ -277,6 +464,12 @@ function saveVideo(info){
 								console.log("And it is Easy Video.");
 								console.log(parsed[i]);
 								downloadVideo({"srcVideo": parsed[i]});
+								break;
+							}
+							else if((parsed[i].search("video.twimg.com")>0)&&(parsed[i].search("m3u8")>0)){
+								console.log("And it is Playlist.");
+								console.log(parsed[i]);
+								parsePlaylist(parsed[i]);
 								break;
 							}
 							else if((parsed[i].search("amp.twimg.com")>0)&&(parsed[i].search("vmap")>0)){
