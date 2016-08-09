@@ -2,7 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 var worker;
-var nameFile;
+var nameFileGIF;
+var nameFileTS;
 var running = false;
 var flag = false;
 var delay = 66;
@@ -27,8 +28,7 @@ function downloadMP4(src){
 		if(items.isSaveMP4){			
 			chrome.downloads.download({url: src, saveAs: items.spcificPathName});
 		}
-	});
-	
+	});	
 }
 
 function convertGIF(src){
@@ -105,7 +105,7 @@ function initWorker() {
 								chrome.tabs.sendMessage(targetTab.id, {
 									greeting: "sendImage",
 									dataImage: event.data,
-									nameOrgin: nameFile
+									nameOrgin: nameFileGIF
 								});
 							}
 						}
@@ -115,7 +115,7 @@ function initWorker() {
 			else{
 				console.log("Auto Download");
 				var repreData = "data:image/gif;base64," + event.data;
-				chrome.downloads.download({url: repreData, filename: nameFile+".gif" },function(id){});
+				chrome.downloads.download({url: repreData, filename: nameFileGIF+".gif" },function(id){});
 			}
 			worker.terminate();
 			console.log("Worker Terminated.");
@@ -135,7 +135,7 @@ function draw(v,c,w,h) {
 }
 
 createVideoElement = function(src){
-	nameFile = src.substring(src.lastIndexOf('/')+1).split(".")[0];
+	nameFileGIF = src.substring(src.lastIndexOf('/')+1).split(".")[0];
 	
 	var eleVideo = document.createElement('video');
 	
@@ -208,11 +208,14 @@ function downloadVideo(request){
 
 function downloadTsVideo(data){
 	if (data){
-		console.log("Video encoded.");
+		console.log("Video fragment merged.");
 		//console.log(request.srcVideo);
-		chrome.storage.sync.get({spcificPathName: false}, function(items){
-			console.log(items.spcificPathName);
-			chrome.downloads.download({url: data, saveAs: items.spcificPathName, filename: nameFile+".ts"});
+		chrome.storage.sync.get({spcificPathName: false}, function(items){			
+			var blob = new Blob([data],{type:'video/mp2t'});
+			var url = URL.createObjectURL(blob);
+
+			console.log(url);
+			chrome.downloads.download({url: url, saveAs: items.spcificPathName, filename: nameFileTS+".ts"});
 		});
 	}
 }
@@ -232,7 +235,7 @@ function parseVmapPage(url){
 }
 
 function parsePlaylist(url){
-	nameFile = url.substring(url.lastIndexOf('/')+1).split(".")[0];
+	nameFileTS = url.substring(url.lastIndexOf('/')+1).split(".")[0];
 	//console.log("nameFile: ", nameFile);	
 	var xhr = new XMLHttpRequest();
 	xhr.onload = function (e) {
@@ -287,35 +290,11 @@ function accumTsFragment(){
 		var nowURL = queueJoinVideo.shift();
 		//console.log(queueJoinVideo.length, nowURL);		
 		downloadTsFragment(nowURL);		
-	}else{
-		//console.log(videoBuffer.length);
-		//console.log(videoBuffer);
-		
-		var b64 = "data:video/mp2t;base64," + u8aToB64(videoBuffer);
-		
-		//console.log(b64.length);
-		
-		downloadTsVideo(b64);
-		
-		//downloadByWorker(Uint8ToString(videoBuffer));
-		
+	}
+	else{
+		downloadTsVideo(videoBuffer);
 		videoBuffer = new Uint8Array(0);
 	}
-}
-
-function downloadByWorker(uint8string) {
-	worker = new Worker('workerB64.js');
-	worker.onmessage = function (event) {
-		console.log("Process Ended");
-		
-		console.log(event.data.length);
-		
-		console.log("Worker Terminated.");
-		worker.terminate();
-		processNextVideo();
-	
-	};
-	worker.postMessage({string: uint8string});
 }
 
 function Uint8ToString(u8a){
@@ -354,6 +333,7 @@ function downloadTsFragment(urlTs){
 
 function getTotalPlaylist(string){
 	var stringsSplited = string.split("#");
+	//console.log("playlist string\n"+string);
 	var arrPlaylist = [];
 	for(var i in stringsSplited){		
 		if(stringsSplited[i].search("ext_tw_video")>0){			
@@ -367,7 +347,8 @@ function getTotalPlaylist(string){
 
 function findBandwidth(sourcePlaylist){
 	var stringsSplited = sourcePlaylist.split(",");
-	for(var i in stringsSplited){		
+	for(var i in stringsSplited){
+		//console.log(i,stringsSplited[i]);
 		if(stringsSplited[i].search("BANDWIDTH") == 0){
 			//console.log(i,stringsSplited[i],stringsSplited[i].split("=")[1]);
 			return Number(stringsSplited[i].split("=")[1]);
@@ -390,6 +371,7 @@ function findPlaylistSource(sourcePlaylist){
 function findMaxBandwidthSource(string){
 	var stringsSplited = string.split("#");
 	var arrBandwidth = [];
+	//console.log(string);
 	for(var i in stringsSplited){		
 		var bandwidth = findBandwidth(stringsSplited[i]);
 		//console.log(i,stringsSplited[i],bandwidth);
@@ -442,7 +424,7 @@ function saveVideo(info){
 				console.log("TweetDeck Video.");
 				console.log(videoUrl[1]);
 				isNotTweetDeck = true;
-				downloadVideo({"srcVideo": videoUrl[1]});				
+				downloadVideo({"srcVideo": videoUrl[1]});
 				break;
 			}
 		}
@@ -466,10 +448,8 @@ function saveVideo(info){
 								downloadVideo({"srcVideo": parsed[i]});
 								break;
 							}
-							else if((parsed[i].search("video.twimg.com")>0)&&(parsed[i].search("m3u8")>0)){
-								console.log("And it is Playlist.");
-								console.log(parsed[i]);
-								parsePlaylist(parsed[i]);
+							else if((parsed[i].search("video.twimg.com")>0)&&(parsed[i].search("m3u8")>0)){									
+								detectedVideo(parsed,i);
 								break;
 							}
 							else if((parsed[i].search("amp.twimg.com")>0)&&(parsed[i].search("vmap")>0)){
@@ -488,13 +468,85 @@ function saveVideo(info){
 	}
 }
 
+function detectedVideo(parsed,i){
+	console.log("And it is Playlist.");
+	console.log(parsed[i]);
+	chrome.storage.sync.get({isVideoSaveAsMP4: true, isVideoSaveAsTS: false}, function(items){
+		console.log("Twitter Video save as");
+		console.log("MP4", items.isVideoSaveAsMP4);
+		console.log("TS", items.isVideoSaveAsTS);
+		
+		if(items.isVideoSaveAsMP4){
+			var j = i;
+			while((parsed[j].search("twitter.com")<1)||(parsed[j].search("status")<1)||(parsed[j].search("video")<1)){
+				j++;
+			}			
+			var targetURL = parsed[j].replace("twitter.com", "mobile.twitter.com");
+			console.log(targetURL);
+			downloadMobileMP4(targetURL);
+		}
+		if(items.isVideoSaveAsTS){
+			parsePlaylist(parsed[i]);
+		}
+	});
+}
+
+function downloadMobileMP4(targetURL){
+	var refererURL = targetURL.replace("/video/1","");
+	
+	chrome.webRequest.onBeforeSendHeaders.addListener(removeHeaderCookie,
+	{urls: ["https://mobile.twitter.com/*/status/*","http://mobile.twitter.com/*/status/*"],
+	types: ["main_frame", "sub_frame", "xmlhttprequest"]}
+	,["blocking", "requestHeaders"]
+	);
+	
+	console.log(refererURL);
+	
+	var xhr = new XMLHttpRequest();
+	xhr.onload = function (e) {
+		if ((xhr.readyState === 4) && (xhr.status === 200)) {
+			console.log('Status: ', xhr.status);
+			console.log("Mobile page downloaded. Parse video address...");
+			chrome.webRequest.onBeforeSendHeaders.removeListener(removeHeaderCookie)
+			var targetVideoURL = findVideoURL(xhr.responseText);
+			downloadVideo({"srcVideo": targetVideoURL})
+		}
+	}
+
+	xhr.open('GET', refererURL, true);
+	xhr.send(null);
+}
+
+function findVideoURL(page){
+	var parsed = page.replace(/&quot;/g,'"').replace(/\\/g, '').split('"');	
+	for(var i in parsed){
+		if((parsed[i].search("video.twimg.com")>0)&&(parsed[i].search("mp4")>0)){
+			console.log(parsed[i]);
+			return parsed[i];
+		}
+	}
+}
+
 chrome.contextMenus.create({"title": "Save as GIF", "contexts":["video"],"onclick": genericOnClick});
 chrome.contextMenus.create({"title": "Save this Twitter video", "contexts":["frame"],"onclick": saveVideo});
 
 chrome.runtime.onMessage.addListener(
 	function(request, sender, sendResponse){
 		console.log(sender.tab ? "from a content script:" + sender.tab.url :"from the extension");
-		downloadVideo(request)		
+		downloadVideo(request)
 	}
-)
+);
+
+var removeHeaderCookie = function(info) {
+	var headers = info.requestHeaders;
+
+	headers.forEach(function(header, i) {
+		if (header.name.toLowerCase() == 'cookie') { 
+			console.log('Cookie Delete');
+			headers.splice(i)
+		}
+	}); 
+	
+	return {requestHeaders: headers};
+}
 

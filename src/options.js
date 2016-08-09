@@ -1,4 +1,3 @@
-
 function optionToBooleanGIF(option){
 	return ((option == 'gif')||(option == 'both'));
 }
@@ -21,19 +20,23 @@ function booleansToOption(isConvertGIF,isSaveMP4){
 
 function saveOptions(){
 	var specific = document.getElementById('specific').checked;
-	var gifSaveAs = document.getElementById('gifSaveAs').value;
-	var convertGIF = optionToBooleanGIF(gifSaveAs);
-	var saveMP4 = optionToBooleanMP4(gifSaveAs);
-		
+	var convertGIF = document.getElementById('gifasgif').checked;
+	var saveMP4 = document.getElementById('gifasmp4').checked;
+	var saveVideoMP4 = document.getElementById('videoasmp4').checked;
+	var saveVideoTS  = document.getElementById('videoasts').checked;
+	
 	console.log(specific);
-	console.log(gifSaveAs);
 	console.log(convertGIF);
 	console.log(saveMP4);
+	console.log(saveVideoMP4);
+	console.log(saveVideoTS);
 	
 	chrome.storage.sync.set({
 		spcificPathName: specific,
 		isConvertGIF: convertGIF,
-		isSaveMP4: saveMP4
+		isSaveMP4: saveMP4,
+		isVideoSaveAsMP4: saveVideoMP4,
+		isVideoSaveAsTS: saveVideoTS
 	},function(){
 		var status = document.getElementById('status');
 		status.textContent = 'Options saved.';
@@ -47,15 +50,23 @@ function restoreOptions(){
 	chrome.storage.sync.get({
 		spcificPathName: false,
 		isConvertGIF: true,
-		isSaveMP4: false
+		isSaveMP4: false,
+		isVideoSaveAsMP4: true,
+		isVideoSaveAsTS: false
 	}, function(items){
-		document.getElementById('specific').checked = items.spcificPathName
-		document.getElementById('gifSaveAs').value = booleansToOption(items.isConvertGIF,items.isSaveMP4);
-		
+		document.getElementById('specific').checked = items.spcificPathName;
+		document.getElementById('gifasgif').checked = items.isConvertGIF;
+		document.getElementById('gifasmp4').checked = items.isSaveMP4;
+		document.getElementById('videoasmp4').checked = items.isVideoSaveAsMP4;
+		document.getElementById('videoasts').checked  = items.isVideoSaveAsTS;
+
 		console.log(items);
 	});
 }
 
 document.addEventListener('DOMContentLoaded', restoreOptions);
 document.getElementById('specific').addEventListener("change", saveOptions);
-document.getElementById('gifSaveAs').addEventListener("change", saveOptions);
+document.getElementById('gifasgif').addEventListener("change", saveOptions);
+document.getElementById('gifasmp4').addEventListener("change", saveOptions);
+document.getElementById('videoasmp4').addEventListener("change", saveOptions);
+document.getElementById('videoasts').addEventListener("change", saveOptions);
