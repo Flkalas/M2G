@@ -114,8 +114,12 @@ function initWorker() {
 			}	
 			else{
 				console.log("Auto Download");
-				var repreData = "data:image/gif;base64," + event.data;
-				chrome.downloads.download({url: repreData, filename: nameFileGIF+".gif" },function(id){});
+				var u8Array = new Uint8Array(atob(event.data).split("").map(function(c){return c.charCodeAt(0); }));
+				var blob = new Blob([u8Array],{type:'image/gif'});
+				var url = URL.createObjectURL(blob);
+				console.log(url);
+				//var repreData = "data:image/gif;base64," + event.data;
+				chrome.downloads.download({url: url, filename: nameFileGIF+".gif" },function(id){});
 			}
 			worker.terminate();
 			console.log("Worker Terminated.");
@@ -242,7 +246,7 @@ function parsePlaylist(url){
 		if ((xhr.readyState === 4) && (xhr.status === 200)) {
 			console.log("Playlist download complete. parsing...");			
 			var targetPlaylist = findMaxBandwidthSource(xhr.responseText);
-			console.log(targetPlaylist);
+			console.log("Finded Max bandwidth playlist: "+targetPlaylist);
 			downloadPlaylist(targetPlaylist);
 		}
 	}
@@ -336,7 +340,7 @@ function getTotalPlaylist(string){
 	//console.log("playlist string\n"+string);
 	var arrPlaylist = [];
 	for(var i in stringsSplited){		
-		if(stringsSplited[i].search("ext_tw_video")>0){			
+		if((stringsSplited[i].search("ext_tw_video")>0)||(stringsSplited[i].search("amplify_video")>0)){			
 			//console.log(i,stringsSplited[i].split("\n")[1]);
 			arrPlaylist.push("https://video.twimg.com"+stringsSplited[i].split("\n")[1]);
 		}
@@ -361,7 +365,8 @@ function findPlaylistSource(sourcePlaylist){
 	var stringsSplited = sourcePlaylist.split("\n");
 	for(var i in stringsSplited){
 		//console.log(i,stringsSplited[i]);
-		if((stringsSplited[i].search("ext_tw_video")>0)&&(stringsSplited[i].search("m3u8")>0)){
+		if(((stringsSplited[i].search("ext_tw_video")>0)||(stringsSplited[i].search("amplify_video")>0))&&(stringsSplited[i].search("m3u8")>0)){
+			//console.log("Finded Max bandwidth playlist: https://video.twimg.com"+stringsSplited[i]);
 			return "https://video.twimg.com"+stringsSplited[i];
 		}
 	}
@@ -381,7 +386,7 @@ function findMaxBandwidthSource(string){
 	}
 
 	var bandwidthMax = Math.max.apply(null,arrBandwidth);
-	//console.log(arrBandwidth, bandwidthMax);
+	console.log("Max bandwidth: ", bandwidthMax, arrBandwidth);
 	
 	for(var i in stringsSplited){
 		if(bandwidthMax == findBandwidth(stringsSplited[i])){
@@ -507,8 +512,9 @@ function downloadMobileMP4(targetURL){
 		if ((xhr.readyState === 4) && (xhr.status === 200)) {
 			console.log('Status: ', xhr.status);
 			console.log("Mobile page downloaded. Parse video address...");
-			chrome.webRequest.onBeforeSendHeaders.removeListener(removeHeaderCookie)
+			chrome.webRequest.onBeforeSendHeaders.removeListener(removeHeaderCookie)			
 			var targetVideoURL = findVideoURL(xhr.responseText);
+			console.log("MP4 Address: " + targetVideoURL);
 			downloadVideo({"srcVideo": targetVideoURL})
 		}
 	}

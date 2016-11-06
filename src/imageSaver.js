@@ -21,12 +21,17 @@ chrome.runtime.onMessage.addListener(
 			"from a content script:" + sender.tab.url :
 			"from the extension");
 		if (request.greeting == "sendImage"){
-			var repreData = "data:image/gif;base64," + request.dataImage;
-			console.log(repreData);
-			document.getElementById('imageresult').src = repreData;
-			//var u8Array = new Uint8Array(atob(request.dataImage).split("").map(function(c){return c.charCodeAt(0); }));
+			//var repreData = "data:image/gif;base64," + request.dataImage;
+			//console.log(repreData);
+			
+			var u8Array = new Uint8Array(atob(request.dataImage).split("").map(function(c){return c.charCodeAt(0); }));
 			//var blob = new Blob([u8Array]);
-			chrome.downloads.download({url: repreData, filename: request.nameOrgin+".gif", saveAs: true},function(id){
+			var blob = new Blob([u8Array],{type:'image/gif'});
+			var url = URL.createObjectURL(blob);
+			document.getElementById('imageresult').src = url;
+			console.log(url);
+			
+			chrome.downloads.download({url: url, filename: request.nameOrgin+".gif", saveAs: true},function(id){
 				waitComplete = setInterval(closeSelf, 300);
 				itemID = id;
 			});
