@@ -450,7 +450,8 @@ function saveVideo(info){
 							else if((parsed[i].search("video.twimg.com")>0)&&(parsed[i].search("mp4")>0)){
 								console.log("And it is Easy Video.");
 								console.log(parsed[i]);
-								downloadVideo({"srcVideo": parsed[i]});
+								genericOnClick({"srcUrl": parsed[i]});
+								//downloadVideo({"srcVideo": parsed[i]});
 								break;
 							}
 							else if((parsed[i].search("video.twimg.com")>0)&&(parsed[i].search("m3u8")>0)){									
