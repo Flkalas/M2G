@@ -448,9 +448,24 @@ function saveVideo(info){
 								break;
 							}
 							else if((parsed[i].search("video.twimg.com")>0)&&(parsed[i].search("mp4")>0)){
-								console.log("And it is Easy Video.");
 								console.log(parsed[i]);
-								genericOnClick({"srcUrl": parsed[i]});
+								if((parsed[i].search("tweet_video")>0)){
+									console.log("And it is GIF Video.");
+									genericOnClick({"srcUrl": parsed[i]});
+								}
+								else if((parsed[i].search("ext_tw_video")>0)){
+									console.log("And it is Easy Video.");
+									downloadVideo({"srcVideo": parsed[i]});
+								}
+								else{
+									console.log("And it Else. New Type. Try Video Download");
+									downloadVideo({"srcVideo": parsed[i]});
+								}
+								//ext_tw_video/825701990357467137/pu/vid/480x480/LacAfZrEY6VN_JVm.mp4
+								//video.twimg.com/tweet_video/C3YnkIPVUAEhM9Z.mp4
+								
+								
+								//genericOnClick({"srcUrl": parsed[i]});
 								//downloadVideo({"srcVideo": parsed[i]});
 								break;
 							}
