@@ -150,8 +150,24 @@ chrome.runtime.onMessage.addListener(
 				}
 			}
 		}
+		else if(request.greeting == "saveMP4Video"){
+			//console.log("recv");
+			//console.log(document.documentElement.innerHTML)
+			url = findVideoURL(document.documentElement.innerHTML)
+			console.log(url)
+			chrome.runtime.sendMessage({srcVideo: url});
+		}
 });
 
-
+function findVideoURL(page){
+	console.log(page)
+	var parsed = page.replace(/&quot;/g,'"').replace(/\\/g, '').split('"');	
+	for(var i in parsed){
+		//console.log(parsed[i]);
+		if((parsed[i].search("video.twimg.com")>0)&&(parsed[i].search("mp4")>0)){			
+			return parsed[i];
+		}
+	}
+}
 
 

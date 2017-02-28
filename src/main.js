@@ -492,7 +492,7 @@ function saveVideo(info){
 function detectedVideo(parsed,i){
 	console.log("And it is Playlist.");
 	console.log(parsed[i]);
-	chrome.storage.sync.get({isVideoSaveAsMP4: true, isVideoSaveAsTS: false}, function(items){
+	chrome.storage.sync.get({isVideoSaveAsMP4: true, isVideoSaveAsTS: true}, function(items){
 		console.log("Twitter Video save as");
 		console.log("MP4", items.isVideoSaveAsMP4);
 		console.log("TS", items.isVideoSaveAsTS);
@@ -504,7 +504,7 @@ function detectedVideo(parsed,i){
 			}			
 			var targetURL = parsed[j].replace("twitter.com", "mobile.twitter.com");
 			console.log(targetURL);
-			downloadMobileMP4(targetURL);
+			//downloadMobileMP4(targetURL);
 		}
 		if(items.isVideoSaveAsTS){
 			parsePlaylist(parsed[i]);
@@ -512,44 +512,66 @@ function detectedVideo(parsed,i){
 	});
 }
 
-function downloadMobileMP4(targetURL){
-	var refererURL = targetURL.replace("/video/1","");
-	
-	chrome.webRequest.onBeforeSendHeaders.addListener(removeHeaderCookie,
-	{urls: ["https://mobile.twitter.com/*/status/*","http://mobile.twitter.com/*/status/*"],
-	types: ["main_frame", "sub_frame", "xmlhttprequest"]}
-	,["blocking", "requestHeaders"]
-	);
-	
-	console.log(refererURL);
-	
-	var xhr = new XMLHttpRequest();
-	xhr.onload = function (e) {
-		if ((xhr.readyState === 4) && (xhr.status === 200)) {
-			console.log('Status: ', xhr.status);
-			console.log("Mobile page downloaded. Parse video address...");
-			chrome.webRequest.onBeforeSendHeaders.removeListener(removeHeaderCookie)			
-			var targetVideoURL = findVideoURL(xhr.responseText);
-			console.log("MP4 Address: " + targetVideoURL);
-			downloadVideo({"srcVideo": targetVideoURL})
+var loadCheck
+loadCheck = function(tabId , info) {
+	if (info.status == "complete") {
+		tabId){
+			
 		}
 	}
+}
 
-	xhr.open('GET', refererURL, true);
-	xhr.send(null);
+function downloadMobileMP4(targetURL){
+	
+	chrome.tabs.create({url: targetURL});
+	
+	// chrome.tabs.create({url: targetURL},function(tab){		
+		// chrome.tabs.sendMessage(tab.id, {greeting: "saveMP4Video"});
+		// setTimeout(function(){
+			// console.log(tab);			
+		// },10000);
+	// });
+	
+	
+
+	//var refererURL = targetURL.replace("/video/1","");
+	
+	// chrome.webRequest.onBeforeSendHeaders.addListener(removeHeaderCookie,
+	// {urls: ["https://mobile.twitter.com/*/status/*","http://mobile.twitter.com/*/status/*"],
+	// types: ["main_frame", "sub_frame", "xmlhttprequest"]}
+	// ,["blocking", "requestHeaders"]
+	// );
+	
+	//console.log(refererURL);
+	
+	// var xhr = new XMLHttpRequest();
+	// xhr.onload = function (e) {
+		// if ((xhr.readyState === 4) && (xhr.status === 200)) {
+			// console.log('Status: ', xhr.status);
+			// console.log("Mobile page downloaded. Parse video address...");
+			// chrome.webRequest.onBeforeSendHeaders.removeListener(removeHeaderCookie)			
+			// var targetVideoURL = findVideoURL(xhr.responseText);
+			// console.log("MP4 Address: " + targetVideoURL);
+			// downloadVideo({"srcVideo": targetVideoURL})
+		// }
+	// }
+
+	// xhr.open('GET', refererURL, true);
+	// xhr.send(null);
 }
 
 function findVideoURL(page){
+	console.log(page)
 	var parsed = page.replace(/&quot;/g,'"').replace(/\\/g, '').split('"');	
 	for(var i in parsed){
-		if((parsed[i].search("video.twimg.com")>0)&&(parsed[i].search("mp4")>0)){
-			console.log(parsed[i]);
+		//console.log(parsed[i]);
+		if((parsed[i].search("video.twimg.com")>0)&&(parsed[i].search("mp4")>0)){			
 			return parsed[i];
 		}
 	}
 }
 
-chrome.contextMenus.create({"title": "Save as GIF", "contexts":["video"],"onclick": genericOnClick});
+//chrome.contextMenus.create({"title": "Save as GIF", "contexts":["video"],"onclick": genericOnClick});
 chrome.contextMenus.create({"title": "Save this Twitter video", "contexts":["frame"],"onclick": saveVideo});
 
 chrome.runtime.onMessage.addListener(

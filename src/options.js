@@ -52,7 +52,7 @@ function restoreOptions(){
 		isConvertGIF: true,
 		isSaveMP4: false,
 		isVideoSaveAsMP4: true,
-		isVideoSaveAsTS: false
+		isVideoSaveAsTS: true
 	}, function(items){
 		document.getElementById('specific').checked = items.spcificPathName;
 		document.getElementById('gifasgif').checked = items.isConvertGIF;
