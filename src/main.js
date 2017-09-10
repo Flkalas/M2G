@@ -512,14 +512,14 @@ function detectedVideo(parsed,i){
 	});
 }
 
-var loadCheck
-loadCheck = function(tabId , info) {
-	if (info.status == "complete") {
-		tabId){
+// var loadCheck
+// loadCheck = function(tabId , info) {
+	// if (info.status == "complete") {
+		// tabId){
 			
-		}
-	}
-}
+		// }
+	// }
+// }
 
 function downloadMobileMP4(targetURL){
 	
@@ -571,13 +571,19 @@ function findVideoURL(page){
 	}
 }
 
-//chrome.contextMenus.create({"title": "Save as GIF", "contexts":["video"],"onclick": genericOnClick});
+chrome.contextMenus.create({"title": "Save as GIF", "contexts":["video"],"onclick": genericOnClick});
 chrome.contextMenus.create({"title": "Save this Twitter video", "contexts":["frame"],"onclick": saveVideo});
 
 chrome.runtime.onMessage.addListener(
 	function(request, sender, sendResponse){
 		console.log(sender.tab ? "from a content script:" + sender.tab.url :"from the extension");
-		downloadVideo(request)
+		console.log(request);
+		if(request.type == 'video'){
+			downloadVideo({srcVideo: request.address});
+		}else if(request.type == 'gif'){
+			genericOnClick({srcUrl: request.address})
+		}
+		//downloadVideo(request)
 	}
 );
 

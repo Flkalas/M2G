@@ -170,4 +170,62 @@ function findVideoURL(page){
 	}
 }
 
+var downloadButton = '<div class="ProfileTweet-action m2g_download_action"><button class="ProfileTweet-actionButton u-textUserColorHover js-actionButton m2g_js_download" type="button"><div class="IconContainer js-tooltip" data-original-title="Video Download"><span class="Icon Icon--medium m2g_download_icon"></span><span class="u-hiddenVisually"></span></div></button></div>';
 
+function injectButton(){
+	console.log("Injected");
+	$(downloadButton).insertAfter(".ProfileTweet-action--favorite");
+}
+
+function sendAddress(type,address){
+	chrome.runtime.sendMessage({type:type, address: address});
+}
+
+function getDownloadAddress(){
+	//console.log("click");
+	// //var id = $(this).closest('.stream-item');
+	var id = $(this).closest('.original-tweet');
+	// console.log(id);
+	// console.log(id[0]);
+	console.log(id.data("tweet-id"));
+	
+	var videoTag = $(this).closest('.tweet').find('video')[0];
+	if(videoTag){
+		//GIF Video
+		videoSource = videoTag.src
+		console.log(videoSource);
+		if(videoSource.includes('blob')){
+			console.log('blob');
+		}else if(videoSource.includes('ext_tw_video')){
+			sendAddress('video',videoSource);
+		}else{
+			sendAddress('gif',videoSource);
+		}
+	}else{
+		
+	}
+    
+}
+
+injectButton();
+// Array.from(".m2g_js_download").forEach(function(element) {
+	// element.addEventListener('click',getDownloadAddress);
+// });
+
+var classname = document.getElementsByClassName("m2g_js_download");
+for (var i = 0; i < classname.length; i++) {
+    classname[i].addEventListener('click', getDownloadAddress, false);
+}
+
+$(document).on('DOMNodeInserted', function(e) {	
+	//console.log("changed");
+	//console.log(e.target);
+    if ( $(e.target).hasClass('stream-item') ) {
+		//console.log("added");
+		$(e.target).find('div.ProfileTweet-action--favorite').after(downloadButton);
+		//console.log($(e.target).find('.m2g_js_download'));
+		$(e.target).find('button.m2g_js_download').each(function(index) {
+			$(this).on("click", getDownloadAddress);
+		});
+    }
+});

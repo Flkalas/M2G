@@ -1,3 +1,21 @@
+
+.m2g_download_action
+{
+	display: inline-block; 
+	*display: inline; 
+	vertical-align: top;
+}
+
+.m2g_download_icon::before
+{
+	content: "\2B73";
+}
+
+.m2g_js_download
+{
+
+}
+
 .m2g_ext_container
 {	
 	float: right;	
