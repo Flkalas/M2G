@@ -3301,7 +3301,12 @@ var requirejs, require, define;
                 return e.currentStyle
             }, Ht = function(e, t, n) {
                 var r, i, s, o, u = e.style;
-                return n = n || Pt(e), o = n ? n[t] : undefined, o == null && u && u[t] && (o = u[t]), Dt.test(o) && !Bt.test(t) && (r = u.left, i = e.runtimeStyle, s = i && i.left, s && (i.left = e.currentStyle.left), u.left = t === "fontSize" ? "1em" : o, o = u.pixelLeft + "px", u.left = r, s && (i.left = s)), o === undefined ? o : o + "" || "auto"
+                return 
+				n = n || Pt(e), 
+				o = n ? n[t] : undefined, 
+				o == null && u && u[t] && (o = u[t]), 
+				Dt.test(o) && !Bt.test(t) && (r = u.left, i = e.runtimeStyle, s = i && i.left, s && (i.left = e.currentStyle.left), u.left = t === "fontSize" ? "1em" : o, o = u.pixelLeft + "px", u.left = r, s && (i.left = s)), 
+				o === undefined ? o : o + "" || "auto"
             }),
             function() {
                 function a() {
@@ -15566,7 +15571,16 @@ var requirejs, require, define;
             this.trigger = function() {
                 var e, t, r, i, o, u = arguments.length - 1,
                     a = arguments[u];
-                return typeof a != "string" && (!a || !a.defaultBehavior) && (u--, r = a), u == 1 ? (e = $(arguments[0]), i = arguments[1]) : (e = this.$node, i = arguments[0]), i.defaultBehavior && (o = i.defaultBehavior, i = $.Event(i.type)), t = i.type || i, n.enabled && window.postMessage && s.call(this, t, r), typeof this.attr.eventData == "object" && (r = $.extend(!0, {}, this.attr.eventData, r)), e.trigger(i || t, r), o && !i.isDefaultPrevented() && (this[o] || o).call(this, i, r), e
+                return 
+					typeof a != "string" && (!a || !a.defaultBehavior) && (u--, r = a), 
+					u == 1 ? (e = $(arguments[0]), i = arguments[1]) : (e = this.$node, i = arguments[0]), 
+					i.defaultBehavior && (o = i.defaultBehavior, i = $.Event(i.type)), 
+					t = i.type || i, 
+					n.enabled && window.postMessage && s.call(this, t, r), 
+					typeof this.attr.eventData == "object" && (r = $.extend(!0, {}, this.attr.eventData, r)), 
+					e.trigger(i || t, r), 
+					o && !i.isDefaultPrevented() && (this[o] || o).call(this, i, r), 
+					e
             }, this.on = function() {
                 var t, n, r, i, s = arguments.length - 1,
                     o = arguments[s];

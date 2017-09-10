@@ -191,17 +191,18 @@ function sendAddress(type,address){
 
 function getDownloadAddress(){
 	//console.log("click");
-	var id = $(this).closest('.original-tweet');
-	console.log(id.data("tweet-id"));
+	var id = $(this).closest('.tweet').data("tweet-id");
+	console.log(id);
+	
 	
 	var videoTag = $(this).closest('.tweet').find('video')[0];
 	if(videoTag){
 		videoSource = videoTag.src
 		console.log(videoSource);
 		if(videoSource.includes('blob')){
-			console.log('blob');
+			chrome.runtime.sendMessage({type:'tsVideo', id: id});
 		}else if(videoSource.includes('ext_tw_video')){
-			sendAddress('video',videoSource);
+			sendAddress('simpleVideo',videoSource);
 		}else{
 			sendAddress('gif',videoSource);
 		}

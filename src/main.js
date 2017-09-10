@@ -240,7 +240,7 @@ function parseVmapPage(url){
 
 function parsePlaylist(url){
 	nameFileTS = url.substring(url.lastIndexOf('/')+1).split(".")[0];
-	//console.log("nameFile: ", nameFile);	
+	console.log("nameFile: ", nameFileTS);
 	var xhr = new XMLHttpRequest();
 	xhr.onload = function (e) {
 		if ((xhr.readyState === 4) && (xhr.status === 200)) {
@@ -574,14 +574,40 @@ function findVideoURL(page){
 chrome.contextMenus.create({"title": "Save as GIF", "contexts":["video"],"onclick": genericOnClick});
 chrome.contextMenus.create({"title": "Save this Twitter video", "contexts":["frame"],"onclick": saveVideo});
 
+function getJSONObject(url){	
+	var xhr = new XMLHttpRequest();	
+
+	xhr.onload = function (e) {
+		var jsonObject = JSON.parse(xhr.response);
+		var platlistAddress = jsonObject["track"]["playbackUrl"];
+		chrome.storage.sync.get({isVideoSaveAsTS: true}, function(items){
+			console.log("Twitter Video save as");			
+			console.log("TS", items.isVideoSaveAsTS);
+			if(items.isVideoSaveAsTS){
+				parsePlaylist(platlistAddress);
+			}
+		});
+	}
+	xhr.open('GET', url, true);
+	xhr.setRequestHeader("authorization", "Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA");
+	xhr.send(null);
+	return 	
+}
+
 chrome.runtime.onMessage.addListener(
 	function(request, sender, sendResponse){
 		console.log(sender.tab ? "from a content script:" + sender.tab.url :"from the extension");
 		console.log(request);
-		if(request.type == 'video'){
+		if(request.type == 'simpleVideo'){
 			downloadVideo({srcVideo: request.address});
 		}else if(request.type == 'gif'){
 			genericOnClick({srcUrl: request.address})
+		}else if(request.type == 'tsVideo'){
+			//console.log(request.id);
+			var jsonAddress = " https://api.twitter.com/1.1/videos/tweet/config/";
+			jsonAddress += request.id+".json";
+			console.log(jsonAddress);			
+			getJSONObject(jsonAddress);
 		}
 		//downloadVideo(request)
 	}
