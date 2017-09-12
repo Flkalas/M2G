@@ -193,8 +193,7 @@ function getDownloadAddress(){
 	//console.log("click");
 	var id = $(this).closest('.tweet').data("tweet-id");
 	console.log(id);
-	
-	
+		
 	var videoTag = $(this).closest('.tweet').find('video')[0];
 	if(videoTag){
 		videoSource = videoTag.src
@@ -224,10 +223,27 @@ function connectClickListener(){
 
 $(document).on('DOMNodeInserted', function(e) {
     if ($(e.target).find('.AdaptiveMedia-video')[0]){
-		console.log("Added video Tweet. Also add button.")
-		$(e.target).find('div.ProfileTweet-action--favorite').after(downloadButton);
-		$(e.target).find('button.m2g_js_download').each(function(index) {
-			$(this).on("click", getDownloadAddress);
-		});
+		//console.log(e.target);
+		if($(e.target).find('button.m2g_js_download')[0]){
+			console.log("Already added? no action");
+		}else{
+			var video = $(e.target).find('.AdaptiveMedia-video').each(function(index){
+				var tweet = $(this).closest('.tweet');
+				console.log(tweet);
+				if($(tweet).find('button.m2g_js_download')[0]){
+					console.log("Already added? no action");
+				}
+				else{					
+					var favIcon = $(tweet).find('div.ProfileTweet-action--favorite')[0];
+					//console.log(favIcon);
+					$(favIcon).after(downloadButton);					
+					console.log("Added video Tweet. Also add button.");
+				}
+			});
+			
+			$(e.target).find('button.m2g_js_download').each(function(index) {
+				$(this).on("click", getDownloadAddress);
+			});
+		}
     }
 });
