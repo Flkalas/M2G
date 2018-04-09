@@ -18,17 +18,15 @@
 
 .m2g_ext_container
 {	
-	float: right;	
+	float: right !important;
     border-radius: 10px;
-    border: 2px solid #8DBAFF;
 	margin: 15px;
     padding: 10px;
-	position:fixed;
-    top:0px;
-    right:0px;    
+	position: fixed !important;
+    top: 36px !important;
+    right:5px !important;
     width: auto;
     height: 30px;
-	background-color: #FFFFFF;
 	-webkit-animation: fadein 1s;
 }
 

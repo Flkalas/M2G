@@ -13,7 +13,7 @@ function injectScript(){
 			
 			var divInject;
 			divInject = document.createElement("div");
-			divInject.className = "m2g_ext_container";
+			divInject.className = "stream-item m2g_ext_container";
 			divInject.setAttribute("aria-live","polite");
 			divInject.innerHTML='<div class="m2g_ext_spinner"><div class="m2g_spinner"></div></div><div class="m2g_ext_text_box"><p class="m2g_ext_text">GIF Converting...</p></div></div>';
 			console.log(divInject);
@@ -197,6 +197,9 @@ function getDownloadAddress(){
 	var videoTag = $(this).closest('.tweet').find('video')[0];
 	if(videoTag){
 		videoSource = videoTag.src
+		if(!videoSource){
+			videoSource = $(this).closest('.tweet').find('source')[0].src
+		}
 		console.log(videoSource);
 		if(videoSource.includes('blob')){
 			chrome.runtime.sendMessage({type:'tsVideo', id: id});
