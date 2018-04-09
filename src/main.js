@@ -571,7 +571,7 @@ function findVideoURL(page){
 	}
 }
 
-chrome.contextMenus.create({"title": "Save as GIF", "contexts":["video"],"onclick": genericOnClick});
+//chrome.contextMenus.create({"title": "Save as GIF", "contexts":["video"],"onclick": genericOnClick});
 chrome.contextMenus.create({"title": "Save this Twitter video", "contexts":["frame"],"onclick": saveVideo});
 
 function getJSONObject(url){	
@@ -625,4 +625,21 @@ var removeHeaderCookie = function(info) {
 	
 	return {requestHeaders: headers};
 }
+
+chrome.storage.sync.get({v135: false}, function(items){
+	if(!items.v135){
+		chrome.storage.sync.set({
+			spcificPathName: false,
+			isConvertGIF: true,
+			isSaveMP4: true,
+			isVideoSaveAsTS: true,
+			v135: true
+		});
+		console.log("Version Up");
+	}else{
+		console.log("Now latest version");
+	}
+});
+
+
 

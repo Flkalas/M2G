@@ -173,7 +173,7 @@ function findVideoURL(page){
 var downloadButton = '<div class="ProfileTweet-action m2g_download_action"><button class="ProfileTweet-actionButton u-textUserColorHover js-actionButton m2g_js_download" type="button"><div class="IconContainer js-tooltip" data-original-title="Video Download"><span class="Icon Icon--medium m2g_download_icon"></span><span class="u-hiddenVisually"></span></div></button></div>';
 
 function injectButtons(){	
-	console.log("Injected");	
+	// console.log("Injected");	
 	$(".tweet").each(function(index){
 		var videoTag = $(this).find('.AdaptiveMedia-video')[0];		
 		if(videoTag){
@@ -209,7 +209,7 @@ function getDownloadAddress(){
 }
 
 $( document ).ready(function() {
-    console.log("Page ready");
+    // console.log("Page ready");
 	injectButtons();
 	connectClickListener();
 });
