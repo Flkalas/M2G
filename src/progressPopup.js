@@ -189,6 +189,53 @@ function sendAddress(type,address){
 	chrome.runtime.sendMessage({type:type, address: address});
 }
 
+function getCookies(domain, name, callback) {
+	chrome.cookies.get({"url": domain, "name": name}, function(cookie) {
+		if(callback) {
+			callback(cookie.value);
+		}
+	});
+}
+
+function getCookie(cname) {
+    var name = cname + "=";
+    var decodedCookie = decodeURIComponent(document.cookie);
+    var ca = decodedCookie.split(';');
+    for(var i = 0; i <ca.length; i++) {
+        var c = ca[i];
+        while (c.charAt(0) == ' ') {
+            c = c.substring(1);
+        }
+        if (c.indexOf(name) == 0) {
+            return c.substring(name.length, c.length);
+        }
+    }
+    return "";
+}
+
+function getJSONObject(url){	
+	var xhr = new XMLHttpRequest();	
+
+	xhr.onload = function (e) {
+		var jsonObject = JSON.parse(xhr.response);
+		var platlistAddress = jsonObject["track"]["playbackUrl"];
+		chrome.storage.sync.get({isVideoSaveAsTS: true}, function(items){
+			console.log("Twitter Video save as");			
+			console.log("TS", items.isVideoSaveAsTS);
+			if(items.isVideoSaveAsTS){
+				chrome.runtime.sendMessage({type:'tsVideo', playlist: platlistAddress});
+			}
+		});
+	}
+	xhr.open('GET', url, true);
+
+	xhr.setRequestHeader("authorization", "Bearer AAAAAAAAAAAAAAAAAAAAAPYXBAAAAAAACLXUNDekMxqa8h%2F40K4moUkGsoc%3DTYfbDKbT3jJPCEVnMYqilB28NHfOPqkca3qaAxGfsyKCs0wRbw");
+	xhr.setRequestHeader("x-csrf-token", getCookie("ct0"));
+
+	xhr.send(null);
+	return 	
+}
+
 function getDownloadAddress(){
 	//console.log("click");
 	var id = $(this).closest('.tweet').data("tweet-id");
@@ -202,7 +249,10 @@ function getDownloadAddress(){
 		}
 		console.log(videoSource);
 		if(videoSource.includes('blob')){
-			chrome.runtime.sendMessage({type:'tsVideo', id: id});
+			var jsonAddress = " https://api.twitter.com/1.1/videos/tweet/config/";
+			jsonAddress += id+".json";
+			console.log(jsonAddress);			
+			getJSONObject(jsonAddress);
 		}else if(videoSource.includes('ext_tw_video')){
 			sendAddress('simpleVideo',videoSource);
 		}else{

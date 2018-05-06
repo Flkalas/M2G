@@ -589,7 +589,7 @@ function getJSONObject(url){
 		});
 	}
 	xhr.open('GET', url, true);
-	xhr.setRequestHeader("authorization", "Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA");
+	xhr.setRequestHeader("authorization", "Bearer AAAAAAAAAAAAAAAAAAAAAPYXBAAAAAAACLXUNDekMxqa8h%2F40K4moUkGsoc%3DTYfbDKbT3jJPCEVnMYqilB28NHfOPqkca3qaAxGfsyKCs0wRbw");
 	xhr.send(null);
 	return 	
 }
@@ -604,10 +604,14 @@ chrome.runtime.onMessage.addListener(
 			genericOnClick({srcUrl: request.address})
 		}else if(request.type == 'tsVideo'){
 			//console.log(request.id);
-			var jsonAddress = " https://api.twitter.com/1.1/videos/tweet/config/";
-			jsonAddress += request.id+".json";
-			console.log(jsonAddress);			
-			getJSONObject(jsonAddress);
+			if(request.id){
+				var jsonAddress = " https://api.twitter.com/1.1/videos/tweet/config/";
+				jsonAddress += request.id+".json";
+				console.log(jsonAddress);			
+				getJSONObject(jsonAddress);
+			}else if(request.playlist){
+				parsePlaylist(request.playlist);
+			}
 		}
 		//downloadVideo(request)
 	}
@@ -640,6 +644,3 @@ chrome.storage.sync.get({v135: false}, function(items){
 		console.log("Now latest version");
 	}
 });
-
-
-
