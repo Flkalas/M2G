@@ -504,60 +504,11 @@ function detectedVideo(parsed,i){
 			}			
 			var targetURL = parsed[j].replace("twitter.com", "mobile.twitter.com");
 			console.log(targetURL);
-			//downloadMobileMP4(targetURL);
 		}
 		if(items.isVideoSaveAsTS){
 			parsePlaylist(parsed[i]);
 		}
 	});
-}
-
-// var loadCheck
-// loadCheck = function(tabId , info) {
-	// if (info.status == "complete") {
-		// tabId){
-			
-		// }
-	// }
-// }
-
-function downloadMobileMP4(targetURL){
-	
-	chrome.tabs.create({url: targetURL});
-	
-	// chrome.tabs.create({url: targetURL},function(tab){		
-		// chrome.tabs.sendMessage(tab.id, {greeting: "saveMP4Video"});
-		// setTimeout(function(){
-			// console.log(tab);			
-		// },10000);
-	// });
-	
-	
-
-	//var refererURL = targetURL.replace("/video/1","");
-	
-	// chrome.webRequest.onBeforeSendHeaders.addListener(removeHeaderCookie,
-	// {urls: ["https://mobile.twitter.com/*/status/*","http://mobile.twitter.com/*/status/*"],
-	// types: ["main_frame", "sub_frame", "xmlhttprequest"]}
-	// ,["blocking", "requestHeaders"]
-	// );
-	
-	//console.log(refererURL);
-	
-	// var xhr = new XMLHttpRequest();
-	// xhr.onload = function (e) {
-		// if ((xhr.readyState === 4) && (xhr.status === 200)) {
-			// console.log('Status: ', xhr.status);
-			// console.log("Mobile page downloaded. Parse video address...");
-			// chrome.webRequest.onBeforeSendHeaders.removeListener(removeHeaderCookie)			
-			// var targetVideoURL = findVideoURL(xhr.responseText);
-			// console.log("MP4 Address: " + targetVideoURL);
-			// downloadVideo({"srcVideo": targetVideoURL})
-		// }
-	// }
-
-	// xhr.open('GET', refererURL, true);
-	// xhr.send(null);
 }
 
 function findVideoURL(page){
@@ -612,6 +563,8 @@ chrome.runtime.onMessage.addListener(
 			}else if(request.playlist){
 				parsePlaylist(request.playlist);
 			}
+		}else if(request.type == 'mp4Video'){
+			downloadVideo({srcVideo: request.address});
 		}
 		//downloadVideo(request)
 	}

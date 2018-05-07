@@ -213,19 +213,42 @@ function getCookie(cname) {
     return "";
 }
 
+function findVideoURL(page){
+	var parsed = page.replace(/&quot;/g,'"').replace(/\\/g, '').split('"');	
+	for(var i in parsed){
+		if((parsed[i].search("video.twimg.com")>0)&&(parsed[i].search("mp4")>0)){			
+			return parsed[i];
+		}
+	}
+}
+
+function downloadMobileMP4(targetURL){
+	var xhr = new XMLHttpRequest();
+	xhr.onload = function (e) {
+		if ((xhr.readyState === 4) && (xhr.status === 200)) {
+			console.log('Status:', xhr.status);
+			console.log("Mobile page downloaded. Parse video address...");
+			var targetVideoURL = findVideoURL(xhr.responseText);
+			console.log("MP4 Address: " + targetVideoURL);
+			chrome.runtime.sendMessage({type:'mp4Video', address: targetVideoURL});
+		}
+	}
+	xhr.open('GET', targetURL, true);
+
+	xhr.setRequestHeader("authorization", "Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA");
+	xhr.setRequestHeader("x-csrf-token", getCookie("ct0"));
+
+	xhr.send(null);
+	return
+}
+
 function getJSONObject(url){	
 	var xhr = new XMLHttpRequest();	
 
 	xhr.onload = function (e) {
 		var jsonObject = JSON.parse(xhr.response);
 		var platlistAddress = jsonObject["track"]["playbackUrl"];
-		chrome.storage.sync.get({isVideoSaveAsTS: true}, function(items){
-			console.log("Twitter Video save as");			
-			console.log("TS", items.isVideoSaveAsTS);
-			if(items.isVideoSaveAsTS){
-				chrome.runtime.sendMessage({type:'tsVideo', playlist: platlistAddress});
-			}
-		});
+		chrome.runtime.sendMessage({type:'tsVideo', playlist: platlistAddress});
 	}
 	xhr.open('GET', url, true);
 
@@ -249,10 +272,24 @@ function getDownloadAddress(){
 		}
 		console.log(videoSource);
 		if(videoSource.includes('blob')){
-			var jsonAddress = " https://api.twitter.com/1.1/videos/tweet/config/";
-			jsonAddress += id+".json";
-			console.log(jsonAddress);			
-			getJSONObject(jsonAddress);
+			chrome.storage.sync.get({isVideoSaveAsTS: true, isVideoSaveAsMP4: true}, function(items){
+				console.log("Twitter Video save as");			
+				console.log("TS", items.isVideoSaveAsTS);
+				console.log("MP4", items.isVideoSaveAsMP4);
+				if(items.isVideoSaveAsTS){
+					var jsonAddress = "https://api.twitter.com/1.1/videos/tweet/config/";
+					jsonAddress += id+".json";
+					console.log(jsonAddress);			
+					getJSONObject(jsonAddress);
+				}
+				if(items.isVideoSaveAsMP4){
+					var pageAddress = "https://api.twitter.com/1.1/statuses/show.json?include_profile_interstitial_type=1&include_blocking=1&include_blocked_by=1&include_followed_by=1&include_want_retweets=1&include_mute_edge=1&include_can_dm=1&skip_status=1&cards_platform=Web-12&include_cards=1&include_ext_alt_text=true&include_reply_count=1&tweet_mode=extended&trim_user=false&include_ext_media_color=true&id=";
+					pageAddress += id;
+					console.log(pageAddress);			
+					downloadMobileMP4(pageAddress);
+				}
+			});
+			
 		}else if(videoSource.includes('ext_tw_video')){
 			sendAddress('simpleVideo',videoSource);
 		}else{
